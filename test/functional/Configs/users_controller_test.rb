@@ -33,62 +33,96 @@ class UsersControllerTest < ActionController::TestCase
   test 'should get new' do
     sign_in @user
     
-    get :new
+    xhr :get, :new
     assert_response :success
     assert_not_nil assigns(:user)
     assert_select '#unexpected_error', false
-    assert_template 'users/new'
+    assert_template 'users/_new'
   end
 
   test 'should create user' do
     sign_in @user
     
     assert_difference('User.count') do
-      post :create, user: Fabricate.attributes_for(:user)
+      xhr :post, :create, user: Fabricate.attributes_for(:user)
     end
 
-    assert_redirected_to user_url(assigns(:user))
+    assert_response :success
+    assert_not_nil assigns(:user)
+    assert_select '#unexpected_error', false
+    assert_template 'users/_user'
+  end
+
+  test 'should not create user' do
+    sign_in @user
+
+    assert_no_difference('User.count') do
+      xhr :post, :create, user: {}
+    end
+
+    assert_response :unprocessable_entity
+    assert_not_nil assigns(:user)
+    assert_select '#unexpected_error', false
+    assert_template 'users/_new'
+    assert_select '.alert-error', true
   end
 
   test 'should show user' do
     sign_in @user
     
-    get :show, id: @user
+    xhr :get, :show, id: @user
     assert_response :success
     assert_not_nil assigns(:user)
     assert_select '#unexpected_error', false
-    assert_template 'users/show'
+    assert_template 'users/_show'
   end
 
   test 'should get edit' do
     sign_in @user
     
-    get :edit, id: @user
+    xhr :get, :edit, id: @user
     assert_response :success
     assert_not_nil assigns(:user)
     assert_select '#unexpected_error', false
-    assert_template 'users/edit'
+    assert_template 'users/_edit'
   end
 
   test 'should update user' do
     sign_in @user
     
     assert_no_difference 'User.count' do
-      put :update, id: @user, user: Fabricate.attributes_for(:user, name: 'Upd')
+      xhr :put, :update, id: @user, user: Fabricate.attributes_for(:user, name: 'Upd')
     end
-    
-    assert_redirected_to user_url(assigns(:user))
+
+    assert_response :success
+    assert_not_nil assigns(:user)
+    assert_select '#unexpected_error', false
+    assert_template 'users/_user'
     assert_equal 'Upd', @user.reload.name
+  end
+
+  test 'should not update user' do
+    sign_in @user
+
+    assert_no_difference 'User.count' do
+      xhr :put, :update, id: @user, user: Fabricate.attributes_for(:user, name: '')
+    end
+
+    assert_response :unprocessable_entity
+    assert_not_nil assigns(:user)
+    assert_select '#unexpected_error', false
+    assert_template 'users/_edit'
+    assert_select '.alert-error', true
   end
 
   test 'should destroy user' do
     sign_in @user
     
     assert_difference('User.count', -1) do
-      delete :destroy, id: @user
+      xhr :delete, :destroy, id: @user
     end
 
-    assert_redirected_to users_url
+    assert_response :success
   end
   
   test 'should get edit profile' do

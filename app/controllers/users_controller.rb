@@ -24,10 +24,7 @@ class UsersController < ApplicationController
   def show
     @title = t 'view.users.show_title'
 
-    respond_to do |format|
-      format.html # show.html.erb
-      format.json { render json: @user }
-    end
+    render partial: 'show', content_type: 'text/html'
   end
 
   # GET /users/new
@@ -35,15 +32,15 @@ class UsersController < ApplicationController
   def new
     @title = t 'view.users.new_title'
 
-    respond_to do |format|
-      format.html # new.html.erb
-      format.json { render json: @user }
-    end
+    render partial: 'new', content_type: 'text/html'
   end
 
   # GET /users/1/edit
   def edit
     @title = t 'view.users.edit_title'
+    #@user = User.find(params[:id])
+
+    render partial: 'edit', content_type: 'text/html'
   end
 
   # POST /users
@@ -51,14 +48,10 @@ class UsersController < ApplicationController
   def create
     @title = t 'view.users.new_title'
 
-    respond_to do |format|
-      if @user.save
-        format.html { redirect_to @user, notice: t('view.users.correctly_created') }
-        format.json { render json: @user, status: :created, location: @user }
-      else
-        format.html { render action: 'new' }
-        format.json { render json: @user.errors, status: :unprocessable_entity }
-      end
+    if @user.save
+      render partial: 'user', locals: { user: @user }, content_type: 'text/html'
+    else
+      render partial: 'new', status: :unprocessable_entity
     end
   end
 
@@ -68,16 +61,11 @@ class UsersController < ApplicationController
     authorize! :assign_roles, @user if params[:user] && params[:user][:roles]
     @title = t 'view.users.edit_title'
 
-    respond_to do |format|
-      if @user.update_attributes(params[:user])
-        format.html { redirect_to @user, notice: t('view.users.correctly_updated') }
-        format.json { head :no_content }
-      else
-        format.html { render action: 'edit' }
-        format.json { render json: @user.errors, status: :unprocessable_entity }
-      end
+    if @user.update_attributes(params[:user])
+      render partial: 'user', locals: { user: @user }, content_type: 'text/html'
+    else
+      render partial: 'edit', status: :unprocessable_entity
     end
-    
   rescue ActiveRecord::StaleObjectError
     flash.alert = t 'view.users.stale_object_error'
     redirect_to edit_user_url(@user)
@@ -113,10 +101,7 @@ class UsersController < ApplicationController
   def destroy
     @user.destroy
 
-    respond_to do |format|
-      format.html { redirect_to users_url }
-      format.json { head :no_content }
-    end
+    render nothing: true, content_type: 'text/html'
   end
 
   def autocomplete_for_hierarchy_name
