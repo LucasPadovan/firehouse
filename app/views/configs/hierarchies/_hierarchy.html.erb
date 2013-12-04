@@ -1,0 +1,10 @@
+<tr id="<%= dom_id(hierarchy) %>">
+  <td><%= hierarchy.name %></td>
+  <td><%= link_to_show [:configs, hierarchy], remote: true, data: { target:
+                       'modal', modal: true } %></td>
+  <td><%= link_to_edit edit_configs_hierarchy_path(hierarchy), remote: true,
+                       data: { target: 'modal', modal: true } if can? :update,
+                       hierarchy %></td>
+  <td><%= link_to_destroy [:configs, hierarchy], remote: true, data: { target:
+                          dom_id(hierarchy) } if can? :destroy, hierarchy %></td>
+</tr>
