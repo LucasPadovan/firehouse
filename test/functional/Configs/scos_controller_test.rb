@@ -89,4 +89,14 @@ class Configs::ScosControllerTest < ActionController::TestCase
 
     assert_response :success
   end
+
+  test 'should activate sco' do
+    @sco.current = false
+    @sco.save
+    request.env['HTTP_REFERER'] = configs_scos_path
+    put :activate, id: @sco.id
+    assert @sco.reload.current
+    assert_not_nil assigns(:sco)
+    assert_select '#unexpected_error', false
+  end
 end

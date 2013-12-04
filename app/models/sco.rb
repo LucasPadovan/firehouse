@@ -27,6 +27,7 @@ class Sco < ActiveRecord::Base
     query.present? ? magick_search(query) : scoped
   end
 
+  #todo: test de esto
   def activate!
     keep_only_one_current
     Sco.current.try(:desactivate!) if Sco.current
