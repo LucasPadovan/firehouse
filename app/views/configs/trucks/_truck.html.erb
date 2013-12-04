@@ -1,0 +1,10 @@
+<tr id="<%= dom_id(truck) %>">
+  <td><%= truck.number %></td>
+  <td><%= truck.mileage %></td>
+  <td><%= link_to_show [:configs, truck], remote: true, data: { target: 'modal',
+                       modal: true } %></td>
+  <td><%= link_to_edit ['edit', 'configs', truck], remote: true, data: { target:
+                       'modal', modal: true }if can? :update, truck %></td>
+  <td><%= link_to_destroy [:configs, truck], remote: true, data: { target:
+                          dom_id(truck)} if can? :destroy, truck %></td>
+</tr>

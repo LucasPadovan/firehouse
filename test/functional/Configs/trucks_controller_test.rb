@@ -17,48 +17,74 @@ class Configs::TrucksControllerTest < ActionController::TestCase
   end
 
   test 'should get new' do
-    get :new
+    xhr :get, :new
     assert_response :success
     assert_not_nil assigns(:truck)
     assert_select '#unexpected_error', false
-    assert_template 'configs/trucks/new'
+    assert_template 'configs/trucks/_new'
   end
 
   test 'should create truck' do
     assert_difference('Truck.count') do
-      post :create, truck: Fabricate.attributes_for(:truck)
+      xhr :post, :create, truck: Fabricate.attributes_for(:truck)
     end
+    assert_response :success
+    assert_not_nil assigns(:truck)
+    assert_select '#unexpected_error', false
+    assert_template 'configs/trucks/_truck'
+  end
 
-    assert_redirected_to configs_truck_url(assigns(:truck))
+  test 'should not create truck' do
+    assert_no_difference('Truck.count') do
+      xhr :post, :create, truck: {}
+    end
+    assert_response :unprocessable_entity
+    assert_not_nil assigns(:truck)
+    assert_template 'configs/trucks/_new'
+    assert_select '#unexpected_error', false
+    assert_select '.alert-error', true
   end
 
   test 'should show truck' do
-    get :show, id: @truck
+    xhr :get, :show, id: @truck
     assert_response :success
     assert_not_nil assigns(:truck)
     assert_select '#unexpected_error', false
-    assert_template 'configs/trucks/show'
+    assert_template 'configs/trucks/_show'
   end
 
   test 'should get edit' do
-    get :edit, id: @truck
+    xhr :get, :edit, id: @truck
     assert_response :success
     assert_not_nil assigns(:truck)
     assert_select '#unexpected_error', false
-    assert_template 'configs/trucks/edit'
+    assert_template 'configs/trucks/_edit'
   end
 
   test 'should update truck' do
-    put :update, id: @truck, 
+    xhr :put, :update, id: @truck,
       truck: Fabricate.attributes_for(:truck)
-    assert_redirected_to configs_truck_url(assigns(:truck))
+    assert_response :success
+    assert_not_nil assigns(:truck)
+    assert_select '#unexpected_error', false
+    assert_template 'configs/trucks/_truck'
+  end
+
+  test 'should not update truck' do
+    xhr :put, :update, id: @truck,
+      truck: { number: '' }
+    assert_response :unprocessable_entity
+    assert_not_nil assigns(:truck)
+    assert_select '#unexpected_error', false
+    assert_template 'configs/trucks/_edit'
+    assert_select '.alert-error', true
   end
 
   test 'should destroy truck' do
     assert_difference('Truck.count', -1) do
-      delete :destroy, id: @truck
+      xhr :delete, :destroy, id: @truck
     end
 
-    assert_redirected_to configs_trucks_path
+    assert_response :success
   end
 end

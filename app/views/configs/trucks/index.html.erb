@@ -13,16 +13,8 @@
           </tr>
         </thead>
 
-        <tbody>
-          <% @trucks.each do |truck| %>
-            <tr>
-              <td><%= truck.number %></td>
-              <td><%= truck.mileage %></td>
-              <td><%= link_to_show [:configs, truck] %></td>
-              <td><%= link_to_edit edit_configs_truck_path(truck) if can? :update, truck %></td>
-              <td><%= link_to_destroy [:configs, truck] if can? :destroy, truck %></td>
-            </tr>
-          <% end %>
+        <tbody id="trucks_table_body">
+          <%= render @trucks %>
         </tbody>
       </table>
     </div>
@@ -34,6 +26,6 @@
 <div class="form-actions">
   <%= link_to(
     t('view.trucks.new', default: :'label.new'),
-    new_configs_truck_path, class: 'btn btn-primary'
-  ) if can? :create, Truck %>
+    new_configs_truck_path, class: 'btn btn-primary', remote: true, data: {
+    target: 'modal', modal: true } ) if can? :create, Truck %>
 </div>

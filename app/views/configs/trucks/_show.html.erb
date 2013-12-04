@@ -1,0 +1,19 @@
+<div class="modal">
+  <div class="modal-header readonly-data">
+    <h3><%= t('view.trucks.show_title') %></h3>
+  </div>
+  <div class="modal-body readonly-data">
+    <p>
+      <strong><%= Truck.human_attribute_name 'number' %></strong>:
+      <%= @truck.number %>
+    </p>
+    <p>
+      <strong><%= Truck.human_attribute_name 'mileage' %></strong>:
+      <%= @truck.mileage %>
+    </p>
+  </div>
+  <div class="modal-footer">
+    <%= link_to_function t('label.close'), "$('#modal').modal('toggle');",
+                         class: 'btn' %>
+  </div>
+</div>
