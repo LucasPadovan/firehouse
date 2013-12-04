@@ -1,0 +1,14 @@
+<div class="modal">
+  <div class="modal-header readonly-data">
+    <h3><%= @sco %></h3>
+  </div>
+  <div class="modal-body readonly-data">
+    <p>
+      <strong><%= Sco.human_attribute_name 'current' if @sco.current %></strong>
+    </p>
+  </div>
+  <div class="modal-footer">
+    <%= link_to_function t('label.close'), "$('#modal').modal('toggle');",
+                         class: 'btn' %>
+  </div>
+</div>

@@ -36,19 +36,11 @@ module ConfigsHelper
   end
 
   def hierarchies_urls
-    urls = [configs_hierarchies_path]
-    urls += [configs_hierarchy_path(@hierarchy)] if @hierarchy && @hierarchy.persisted?
-    urls += [new_configs_hierarchy_path]
-    urls += [edit_configs_hierarchy_path(@hierarchy)] if @hierarchy && @hierarchy.persisted?
-    urls
+    [configs_hierarchies_path]
   end
 
   def scos_urls
-    urls = [configs_scos_path]
-    urls += [configs_sco_path(@sco)] if @sco && @sco.persisted?
-    urls += [new_configs_sco_path]
-    urls += [edit_configs_sco_path(@sco)] if @sco && @sco.persisted?
-    urls
+    [configs_scos_path]
   end
 
   def trucks_urls
@@ -60,10 +52,6 @@ module ConfigsHelper
   end
 
   def firefighters_urls
-    urls = [configs_firefighters_path]
-    urls += [configs_firefighter_path(@firefighter)] if @firefighter && @firefighter.persisted?
-    urls += [new_configs_firefighter_path]
-    urls += [edit_configs_firefighter_path(@firefighter)] if @firefighter && @firefighter.persisted?
-    urls
+    [configs_firefighters_path]
   end
 end

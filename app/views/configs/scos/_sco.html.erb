@@ -1,9 +1,12 @@
-<tr class='<%= 'success' if sco.current %>'>
+<tr class='<%= 'success' if sco.current %>' id="<%= dom_id(sco) %>">
   <td><%= link_to(
     t('view.scos.activate'), activate_configs_sco_path(sco), method: :put
   ) unless sco.current %></td>
   <td><%= sco.full_name %></td>
-  <td><%= link_to_show [:configs, sco] %></td>
-  <td><%= link_to_edit edit_configs_sco_path(sco) if can? :update, sco %></td>
-  <td><%= link_to_destroy [:configs, sco] if can? :destroy, sco %></td>
+  <td><%= link_to_show [:configs, sco], remote: true, data: { target: 'modal',
+                       modal: true } %></td>
+  <td><%= link_to_edit edit_configs_sco_path(sco), remote: true, data: { target:
+                       'modal', modal: true } if can? :update, sco %></td>
+  <td><%= link_to_destroy [:configs, sco], remote: true, data: { target:
+                          dom_id(sco) } if can? :destroy, sco %></td>
 </tr>

@@ -13,10 +13,8 @@
           </tr>
         </thead>
 
-        <tbody>
-          <% @scos.each do |sco| %>
-            <%= render partial: 'sco', locals: { sco: sco } %>
-          <% end %>
+        <tbody id="scos_table_body">
+          <%= render @scos %>
         </tbody>
       </table>
     </div>
@@ -28,6 +26,6 @@
 <div class="form-actions">
   <%= link_to(
     t('view.scos.new', default: :'label.new'),
-    new_configs_sco_path, class: 'btn btn-primary'
-  ) if can? :create, Sco %>
+    new_configs_sco_path, class: 'btn btn-primary', remote: true, data: {
+    target: 'modal', modal: true } ) if can? :create, Sco %>
 </div>

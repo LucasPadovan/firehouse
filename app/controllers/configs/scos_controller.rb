@@ -24,10 +24,7 @@ class Configs::ScosController < ApplicationController
     @title = t('view.scos.show_title')
     @sco = Sco.find(params[:id])
 
-    respond_to do |format|
-      format.html # show.html.erb
-      format.json { render json: @sco }
-    end
+    render partial: 'show', content_type: 'text/html'
   end
 
   # GET /scos/new
@@ -36,16 +33,15 @@ class Configs::ScosController < ApplicationController
     @title = t('view.scos.new_title')
     @sco = Sco.new
 
-    respond_to do |format|
-      format.html # new.html.erb
-      format.json { render json: @sco }
-    end
+    render partial: 'new', content_type: 'text/html'
   end
 
   # GET /scos/1/edit
   def edit
     @title = t('view.scos.edit_title')
     @sco = Sco.find(params[:id])
+
+    render partial: 'edit', content_type: 'text/html'
   end
 
   # POST /scos
@@ -54,14 +50,10 @@ class Configs::ScosController < ApplicationController
     @title = t('view.scos.new_title')
     @sco = Sco.new(params[:sco])
 
-    respond_to do |format|
-      if @sco.save
-        format.html { redirect_to [:configs, @sco], notice: t('view.scos.correctly_created') }
-        format.json { render json: @sco, status: :created, location: @sco }
-      else
-        format.html { render action: 'new' }
-        format.json { render json: @sco.errors, status: :unprocessable_entity }
-      end
+    if @sco.save
+      render partial: 'sco', locals: { sco: @sco }, content_type: 'text/html'
+    else
+      render partial: 'new', status: :unprocessable_entity
     end
   end
 
@@ -71,15 +63,11 @@ class Configs::ScosController < ApplicationController
     @title = t('view.scos.edit_title')
     @sco = Sco.find(params[:id])
 
-    respond_to do |format|
       if @sco.update_attributes(params[:sco])
-        format.html { redirect_to configs_scos_url, notice: t('view.scos.correctly_updated') }
-        format.json { head :ok }
+        render partial: 'sco', locals: { sco: @sco }, content_type: 'text/html'
       else
-        format.html { render action: 'edit' }
-        format.json { render json: @sco.errors, status: :unprocessable_entity }
+        render partial: 'edit', status: :unprocessable_entity
       end
-    end
   rescue ActiveRecord::StaleObjectError
     redirect_to edit_configs_sco_url(@sco), alert: t('view.scos.stale_object_error')
   end
@@ -90,10 +78,7 @@ class Configs::ScosController < ApplicationController
     @sco = Sco.find(params[:id])
     @sco.destroy
 
-    respond_to do |format|
-      format.html { redirect_to configs_scos_url }
-      format.json { head :ok }
-    end
+    render nothing: true, content_type: 'text/html'
   end
 
   def activate
