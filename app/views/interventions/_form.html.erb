@@ -1,17 +1,26 @@
 <%= content_for :js_headers do %>
   <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?libraries=places&sensor=true" data-turbolinks-track="false"></script>
 <% end %>
+
 <%= content_tag :div, t('view.interventions.no_active_ceo'),
   class: 'alert alert-danger' if @no_active_ceo %>
+
+<div data-new-console-alert="div" class="hide" data-template="<%= %{
+  <div class="alert alert-info">
+    <a class="close" data-dismiss="alert">&times;</a>
+    <h3>
+      <a href="LINK_PLACE" target="_blank">
+        #{t('view.interventions.new_console_intervention')}
+      </a>
+    </h3>
+  </div>
+} %>">
+</div>
 
 <% intervention_form = nil %>
 <%= simple_form_for @intervention,
   defaults: { input_html: { class: 'span10' } },
   html: { autocomplete: 'off', data: { intervention_form: true } } do |f| %>
-
-  <%= f.error_notification %>
-  <%= content_tag :div, f.object.errors.full_messages.join(', '),
-    class: 'alert alert-danger' if f.object.errors.size > 0 %>
 
   <div class="form-inputs">
     <div class='row-fluid'>
@@ -81,7 +90,7 @@
       </div>
     </div>
 
-    <div class="<%= 'hide' unless @intervention.persisted? %>" >
+    <% if @intervention.persisted? || (defined?(dynamic) && dynamic) %>
       <div class='page-header'>
         <h3><%= t('view.interventions.output_title') %></h3>
       </div>
@@ -127,10 +136,9 @@
             data-show-tooltip='true'>&#xe079;</span>
         </h3>
         <%= f.input :observations, label: false,
-          input_html: { class: 'span11', rows: 5,
-                        data: { intervention_saver: true } } %>
+          input_html: { class: 'span12', rows: 5 } %>
       </div>
-    </div>
+    <% end %>
   </div>
 
   <div class="form-actions">
@@ -139,20 +147,19 @@
     <%= f.button :submit, class: 'btn btn-primary' %>
   </div>
 <% end %>
-<script type="text/javascript" charset="utf-8">
-  var dynamicTab =
-      '<%= content_tag(:li, link_to(
-        "dynamicContent", "#endowments_dynamicContent",
-        data: { toggle: 'tab', 'endowment-link' => true, number: "dynamicContent" }
-      )
-    ) %>'
-  var dynamicForm =
-      '<%= link_to_add_fields("+", intervention_form, :endowments) %>'
-
-  var without_result = '<%= t("label.without_results") %>'
-</script>
 
 <script type="text/javascript" charset="utf-8">
+  <% if @intervention.persisted? || (defined?(dynamic) && dynamic) %>
+    var dynamicTab =
+        '<%= content_tag(:li, link_to(
+            "dynamicContent", "#endowments_dynamicContent",
+            data: { toggle: 'tab', 'endowment-link' => true, number: "dynamicContent" }
+          )
+        ) %>',
+      dynamicForm = '<%= link_to_add_fields("+", intervention_form, :endowments) %>',
+      without_result = '<%= t("label.without_results") %>';
+  <% end %>
+
   $(document).ready(function() {
     <% if @intervention.latitude.present? && @intervention.longitude.present? %>
       Leaflet.elements.defaultMarkerInfo.latitude    = '<%= @intervention.latitude %>'
@@ -164,8 +171,10 @@
     Leaflet.options.shouldShowSimple = true
     Leaflet.newMap();
     autocompleteAddress('intervention_address');
+    $('textarea').textareaAutoSize();
   });
 
   Intervention.focusLastFocusedInput();
   Intervention.tokenizeAutocompleteInputs();
+  InterventionUpdater.consoleAlerts();
 </script>

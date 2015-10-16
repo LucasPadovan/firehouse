@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   get :console, to: 'websockets#console'
+  get :console_create, to: 'interventions#console_create'
 
   resources :interventions do
     collection do
@@ -29,7 +30,10 @@ Rails.application.routes.draw do
   devise_for :users
 
   resources :users do
-    get :autocomplete_for_hierarchy_name, on: :collection
+    collection do
+      get :autocomplete_for_hierarchy_name
+      get :autocomplete_for_user_name
+    end
     member do
       get :edit_profile
       put :update_profile
@@ -38,7 +42,7 @@ Rails.application.routes.draw do
 
   match '/fullscreen' => 'tracking_maps#fullscreen', as: :fullscreen, via: :get
 
-  root to: redirect('/users/sign_in')
+  root to: 'interventions#new'
 
   namespace :configs do
     resources :intervention_types, except: :show do
@@ -48,12 +52,16 @@ Rails.application.routes.draw do
         put :set_priority
       end
     end
-    resources :firefighters, :trucks, :hierarchies, :users
+    resources :firefighters do
+      resources :relatives, except: :show
+    end
+    resources :trucks, :hierarchies, :users
     resources :scos do
       put :activate, on: :member
       get :mini_index, on: :collection
     end
 
     match 'lights/brightness', to: 'lights#brightness', via: [:patch, :get]
+    patch 'lights/volume', to: 'lights#volume'
   end
 end

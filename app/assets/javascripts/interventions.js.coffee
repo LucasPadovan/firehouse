@@ -5,18 +5,31 @@ window.Intervention =
     if Intervention.lastFocusedInput
       $('#' + Intervention.lastFocusedInput.attr('id')).focus()
 
-  saveIntervention: (a, updatedPoint) ->
+  saveIntervention: (e, updatedPoint) ->
     interventionForm = $('form[data-intervention-form]')
     url              = interventionForm[0].getAttribute('action')
     _method          = interventionForm[0].getAttribute('method')
+    selector         = $('#intervention_intervention_type_id')
 
-    if $('#intervention_intervention_type_id').val().toString() != ''
+    # Important button click
+    interventionSaver = if this.attributes
+      this.attributes['data-intervention-saver']
+
+    if interventionSaver &&
+        interventionSaver.value.toString() == 'important-button' &&
+        this.attributes.target &&
+        this.attributes.target.value
+
+      selector.val(this.attributes.target.value)
+
+    if selector.val().toString() != ''
       $.ajax
         url: url
         type: _method
         data: interventionForm.serialize()
         success: (data)->
-          $('.content').html(data)
+          if $.trim(data)
+            $('.content').html(data)
           if updatedPoint
             InterventionUpdater.emitEvent('new intervention')
 
@@ -42,8 +55,6 @@ window.Intervention =
             input.parents('[data-endowment-lines]')
               .find('[id^="token-input-intervention"]:visible:first').focus()
 
-  clickTrigger: ->
-    $('#buttons-trigger').click()
 
 new Rule
   condition: -> $('#c_interventions').length
@@ -142,14 +153,18 @@ new Rule
           url: '/interventions/' + id + '/special_sign'
           type: 'PUT'
           data: { sign: type }
-      else if type == 'alert'
-        Intervention.saveIntervention()
+
+      Intervention.saveIntervention()
 
     @map.handleEnterOnInputs ||= (e) ->
       key = e.which
 
-      if key == 13 && !e.ctrlKey
+      if e.target && e.target.type == 'textarea'
+        return
+
+      if (key == 10 || key == 13) && !e.ctrlKey
         e.preventDefault()
+        e.stopPropagation()
         Intervention.saveIntervention()
 
       if (key == 10 || key == 13) && e.ctrlKey
@@ -159,20 +174,60 @@ new Rule
       e.preventDefault()
       e.stopPropagation()
 
+    @map.alertWhenDistanceIsBig ||= (e) ->
+      $input = $(e.target)
+      group_parent = $input.parents('.control-group:first')[0]
+      travel_type_changed = e.target.getAttribute('data-travel-type')
+      travel_type_changed_value = $input.val()
+      max_distance_warning = 50
+      alert_text = "Más de #{max_distance_warning}km recorridos"
+
+      switch travel_type_changed
+        when 'in_mileage'
+          back_mileage = $input.parents('fieldset:first').find('[data-travel-type="back_mileage"]')
+          back_mileage_value = back_mileage.val()
+
+          if (travel_type_changed_value - back_mileage_value) > max_distance_warning
+            window.alert(alert_text)
+            group_parent.classList.add('error')
+          else
+            group_parent.classList.remove('error')
+
+        when 'back_mileage'
+          arrive_mileage = $input.parents('fieldset:first').find('[data-travel-type="arrive_mileage"]')
+          arrive_mileage_value = arrive_mileage.val()
+
+          if (travel_type_changed_value - arrive_mileage_value) > max_distance_warning
+            window.alert(alert_text)
+            group_parent.classList.add('error')
+          else
+            group_parent.classList.remove('error')
+
+
+        when 'arrive_mileage'
+          out_mileage = $input.parents('fieldset:first').find('[data-travel-type="out_mileage"]')
+          out_mileage_value = out_mileage.val()
+
+          if (travel_type_changed_value - out_mileage_value) > max_distance_warning
+            window.alert(alert_text)
+            group_parent.classList.add('error')
+          else
+            group_parent.classList.remove('error')
+
 
     $(document).on 'click', '#add_new_endowment', @map.addNewTab
     $(document).on 'change', '[data-truck-number]', @map.assignTruckMileage
     $(document).on 'click', '[data-set-time-to]', @map.setCurrentTimeToTruckData
     $(document).on 'click', '#add_current_time', @map.setCurrentTimeToObservations
     $(document).on 'keyup', 'input[name$="[number]"]', @map.changeEndowmentNumber
-    $(document).on 'click', '[data-intervention-saver="important-button"]', Intervention.saveIntervention
-    $(document).on 'change', '[data-intervention-saver]', Intervention.saveIntervention
-    $(document).on 'change', '[data-intervention-trigger="quick-buttons"]', Intervention.clickTrigger
+    $(document).off('click', '[data-intervention-saver="important-button"]').on 'click', '[data-intervention-saver="important-button"]', Intervention.saveIntervention
+    $(document).off('change', '[data-intervention-saver]').on 'change', '[data-intervention-saver]', Intervention.saveIntervention
     $(document).on 'keyup', '[data-ignore-enter]', @map.ignoreEnter
+    $(document).off('change', '[data-travel-type]').on 'change', '[data-travel-type]', @map.alertWhenDistanceIsBig
 
     # Fucking fix for double trigger....
     $(document).off('click', '[data-intervention-special-button]').on('click', '[data-intervention-special-button]', @map.sendSpecialSign)
-    $(document).off('keypress').on('keypress', @map.handleEnterOnInputs)
+    $(document).off('keypress').on('keypress', '[data-intervention-form="true"]', @map.handleEnterOnInputs)
 
   unload: ->
     $(document).off 'click', '#add_new_endowment', @map.addNewTab
@@ -184,7 +239,3 @@ new Rule
     $(document).off 'change', '[data-intervention-saver]', Intervention.saveIntervention
     $(document).off 'click', '[data-intervention-special-button]', @map.sendSpecialSign
     $(document).off 'keyup', 'input', @map.handleEnterOnInputs
-
-jQuery ($) ->
-  $(document).on 'focusin', 'input', ->
-    Intervention.lastFocusedInput = $(this)

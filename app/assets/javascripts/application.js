@@ -10,12 +10,21 @@
 // WARNING: THE FIRST BLANK LINE MARKS THE END OF WHAT'S TO BE PROCESSED, ANY BLANK LINE SHOULD
 // GO AFTER THE REQUIRES BELOW.
 //
+// PLUGGINS
 //= require jquery
 //= require jquery-ui
 //= require jquery_ujs
 //= require jquery/tokeninput
 //= require jquery/emuletab
+//= require jquery/textarea-autosize
 //= require twitter/bootstrap
+//= require SrBuj
+//= require bootstrap-colorpicker
+//= require leaflet/leaflet
+//= require leaflet/leaflet-routing-machine.min
+//= require socketio/core
+
+// Own
 //= require inspector
 //= require turboevents
 //= require turbolinks
@@ -27,8 +36,6 @@
 //= require mobile
 //= require interventions
 //= require utils
-//= require SrBuj
-//= require bootstrap-colorpicker
 //= require configs/lights
 //= require quick_buttons
 //= require maps/google_maps.js
@@ -37,5 +44,4 @@
 //= require leaflet/leaflet-routing-machine.min
 //= require maps/map_tiles.js
 //= require maps/leaflet_utils.js
-//= require socketio/core
-//= require maps/interventions_updater.js
+//= require interventions_updater

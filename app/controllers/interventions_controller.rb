@@ -1,10 +1,10 @@
 class InterventionsController < ApplicationController
-
-  before_filter :authenticate_user!
+  before_filter :authenticate_user!, except: [:console_create]
   before_filter :active_sco?, only: [:new, :edit]
 
-  check_authorization
-  load_and_authorize_resource
+  #skip_authorization_check only: [:console_create]
+  check_authorization except: [:console_create]
+  load_and_authorize_resource except: [:console_create]
 
   # GET /interventions
   # GET /interventions.json
@@ -58,16 +58,12 @@ class InterventionsController < ApplicationController
   def update
     @title = t('view.interventions.edit_title')
     @intervention = Intervention.find(params[:id])
+    html_request = request.format.html?
 
-    if @intervention.update(params[:intervention]) && request.format.html?
+    if @intervention.update(params[:intervention]) && html_request
       redirect_to @intervention, notice: t('view.interventions.correctly_updated')
     else
-      @intervention.build_informer unless @intervention.informer
-      if request.format.html?
-        render 'edit'
-      else
-        render 'edit', layout: false
-      end
+      render 'edit', layout: (html_request ? 'application' : false)
     end
   rescue ActiveRecord::StaleObjectError
     redirect_to edit_intervention_url(@intervention),
@@ -77,6 +73,7 @@ class InterventionsController < ApplicationController
   # no deberiamos tener deletes.
   def destroy
     @intervention = Intervention.find(params[:id])
+    @intervention.turn_off_alert
     @intervention.destroy
 
     redirect_to interventions_url
@@ -125,6 +122,13 @@ class InterventionsController < ApplicationController
 
     render nothing: true
   end
+
+  def console_create
+    Intervention.create_by_lights(params)
+
+    render nothing: true
+  end
+
   private
 
     def active_sco?

@@ -4,6 +4,9 @@ class InterventionType < ActiveRecord::Base
   mount_uploader :audio, AudioUploader
 
   COLORS = ['red', 'green', 'blue', 'yellow', 'white']
+  COLORS_LIGHTS_OFF = Hash[COLORS.map {|k| [k, false]}]
+
+  scope :without_emergencies, -> () { where(priority: nil) }
 
   serialize :lights, Hash
 
@@ -32,8 +35,27 @@ class InterventionType < ActiveRecord::Base
     end
   end
 
+  def self.find_by_lights(lights)
+    search_lights = {}
+    COLORS.each do |color|
+      search_lights[color] = lights[color].to_bool
+    end
+
+    all.each do |it|
+      if COLORS.map { |c| it.lights[c] == search_lights[c] }.all?
+        return it
+      end
+    end
+
+    nil
+  end
+
   def to_s
-    self.name
+    self.parent_name + self.name
+  end
+
+  def parent_name
+    self.intervention_type_id ? "[#{self.father.to_s}] " : ''
   end
 
   def has_children?
@@ -60,6 +82,10 @@ class InterventionType < ActiveRecord::Base
     end
 
     collection
+  end
+
+  def emergency?
+    priority?
   end
 
   def emergency_or_urgency

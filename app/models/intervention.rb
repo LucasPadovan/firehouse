@@ -4,19 +4,12 @@ class Intervention < ActiveRecord::Base
 
   attr_accessor :auto_receptor_name, :auto_sco_name
 
- # attr_accessible :address, :kind_notes, :near_corner, :number,
- #   :observations, :receptor_id, :endowments_attributes, :auto_sco_name,
- #   :sco_id, :informer_attributes, :auto_receptor_name, :intervention_type_id,
- #   :latitude, :longitude, :endowments
-
   validates :intervention_type_id, presence: true
-  #validates :number, uniqueness: true
-  #validate :sco_presence
 
   before_validation :assign_endowment_number, :validate_truck_presence
-  after_create :assign_mileage_to_trucks, :send_first_alert_to_redis,
-    :play_intervention_audio!
-  after_save :endowment_alert_changer, :put_in_redis_list
+  after_create :send_first_alert!, :play_intervention_audio!,
+    if: -> (i) { i.intervention_type.emergency? }
+  after_save :endowment_alert_changer, :assign_mileage_to_trucks
 
   belongs_to :intervention_type
   belongs_to :user, foreign_key: 'receptor_id'
@@ -29,7 +22,7 @@ class Intervention < ActiveRecord::Base
 
   scope :opened, -> { includes(:statuses).where(statuses: { name: 'open' }) }
 
-  accepts_nested_attributes_for :informer, allow_destroy: true,
+  accepts_nested_attributes_for :informer,
     reject_if: ->(attrs) { attrs['full_name'].blank? && attrs['nid'].blank? }
   accepts_nested_attributes_for :endowments, allow_destroy: true,
     reject_if: :reject_endowment_item?
@@ -42,15 +35,35 @@ class Intervention < ActiveRecord::Base
     self.endowments.build if self.endowments.empty?
   end
 
+  def self.create_by_lights(lights)
+    if (it = InterventionType.find_by_lights(lights)).present?
+      intervention = create(
+        intervention_type_id: it.id, receptor_id: User.default_receptor.id
+      )
+      $redis.publish(
+        'socketio-new-intervention',
+        url_helpers.edit_intervention_path(intervention)
+      )
+    end
+  end
+
+  def to_s
+    _to_s = "##{self.id} - #{self.type}"
+    _to_s << " (#{I18n.t('view.interventions.kinds.its_a_trap')})" if its_a_trap?
+    _to_s
+  end
+
+  def self.url_helpers
+    Rails.application.routes.url_helpers
+  end
+
   def receptor
     self.user
   end
 
   def reject_endowment_item?(attrs)
-    endow_reject = false
-
-    attrs['endowment_lines_attributes'].each do |i, e|
-      endow_reject ||= e['firefighters_names'].present?
+    endow_reject = attrs['endowment_lines_attributes'].any? do |_, e|
+      e['firefighters_names'].present?
     end
 
     attrs['truck_id'].blank? && attrs['truck_number'].blank? && !endow_reject
@@ -63,7 +76,7 @@ class Intervention < ActiveRecord::Base
   end
 
   def assign_endowment_number
-    self.endowments.each_with_index { |e, i| e.number ||= i + 1}
+    self.endowments.each_with_index { |e, i| e.number ||= i + 1 }
   end
 
   def assign_mileage_to_trucks
@@ -73,7 +86,7 @@ class Intervention < ActiveRecord::Base
   end
 
   def type
-    self.intervention_type.try(:name)
+    self.intervention_type.try(:to_s)
   end
 
   def validate_truck_presence
@@ -111,40 +124,43 @@ class Intervention < ActiveRecord::Base
     case sign.to_s
       when 'alert' then reactivate!
       when 'trap'  then its_a_trap!
+      when 'qta'   then turn_off_alert
     end
   end
 
   def reactivate!
-    alerts.create!
+    intervention_type.emergency? ? send_lights : send_first_alert!
 
-    send_lights
+    play_intervention_audio!
   end
 
   def its_a_trap!
-    _lights = lights_for_redis
-    _lights['trap'] = true
+    lights = lights_for_redis
+    lights['trap'] = true
 
-    save_lights_on_redis(_lights)
+    update_column(:its_a_trap, true)
+
+    save_lights_on_redis(lights)
     send_lights
   end
 
-  def save_lights_on_redis(_lights)
-    $redis.set('interventions:' + self.id.to_s, _lights.to_json)
+  def save_lights_on_redis(lights)
+    $redis.set('interventions:' + self.id.to_s, lights.to_json)
   end
 
   def default_lights
-    _lights = intervention_type.lights
-    _lights['day'] = (8..19).include?(Time.now.hour)
-    _lights
+    lights = intervention_type.lights
+    lights['day'] = (8..19).include?(Time.zone.now.hour)
+    lights
   end
 
   def lights_for_redis
-    if (_lights = $redis.get('interventions:' + self.id.to_s)).present?
-      JSON.parse _lights
+    if (lights = $redis.get('interventions:' + self.id.to_s)).present?
+      JSON.parse lights
     else
-      _lights = default_lights
-      save_lights_on_redis(_lights)
-      _lights
+      lights = default_lights
+      save_lights_on_redis(lights)
+      lights
     end
   end
 
@@ -155,38 +171,48 @@ class Intervention < ActiveRecord::Base
   end
 
   def turn_off_the_lights!
-    off = InterventionType::COLORS.inject({}) {|h, light| h.merge!(light => false)}
-    $redis.publish('semaphore-lights-alert', off.to_json)
+    $redis.publish(
+      'semaphore-lights-alert',
+      InterventionType::COLORS_LIGHTS_OFF.to_json
+    )
   end
 
-  def send_first_alert_to_redis
+  def send_first_alert!
+    alerts.create!
+    send_alert_to_lcd
     put_in_redis_list
 
     send_lights
   end
 
-  def is_active?
+  def send_alert_to_lcd
+    $redis.publish('lcd-messages', { full: self.to_s }.to_json)
+  end
+
+  def active?
     $redis.lrange('interventions:actives', 0, -1).include? self.id
   end
 
   def endowment_alert_changer
     case
-      when endowments.any? { |e| e.out_at.present? } then send_alert_on_repose
       when endowments.any? { |e| e.in_at.present? }  then turn_off_alert
+      when endowments.any? { |e| e.out_at.present? } then send_alert_on_repose
     end
   end
 
   def send_alert_on_repose
-    _lights = lights_for_redis
-    _lights['sleep'] = true
+    lights = lights_for_redis
+    lights['sleep'] = true
 
-    save_lights_on_redis(_lights)
+    save_lights_on_redis(lights)
+    put_in_redis_list
     start_looping_active_alerts!
   end
 
   def turn_off_alert
     remove_item_from_actives_list
     $redis.del('interventions:' + self.id.to_s)
+    $redis.publish('stop-broadcast', 'stop')
     turn_off_the_lights!
   end
 
@@ -216,14 +242,18 @@ class Intervention < ActiveRecord::Base
   def put_in_redis_list
     list = list_key_for_redis
 
-    unless is_on_list?(list)
+    if not_in_list?(list)
       remove_item_from_actives_list
 
       $redis.lpush(list, self.id)
     end
   end
 
-  def is_on_list?(list)
+  def not_in_list?(list)
+    !in_list?(list)
+  end
+
+  def in_list?(list)
     $redis.lrange(list, 0, -1).include?(self.id)
   end
 
@@ -232,11 +262,10 @@ class Intervention < ActiveRecord::Base
   end
 
   def remove_item_from_actives_list
-    ['low', 'high'].each do |priority|
-      kind = intervention_type.emergency_or_urgency
-      list = "interventions:#{priority}:#{kind}"
+    kind = intervention_type.emergency_or_urgency
 
-      remove_item_from_list(list)
+    %w(low high).each do |priority|
+      remove_item_from_list("interventions:#{priority}:#{kind}")
     end
   end
 
@@ -250,8 +279,9 @@ class Intervention < ActiveRecord::Base
     end
   end
 
-  protected
+protected
+
   def trucks_numbers
-    endowments.map{ |endowment| endowment.truck.number if endowment.truck }.uniq
+    endowments.map { |endowment| endowment.truck.number if endowment.truck }.uniq
   end
 end

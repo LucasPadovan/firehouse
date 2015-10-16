@@ -1,5 +1,6 @@
 class Configs::FirefightersController < ApplicationController
   before_filter :authenticate_user!
+  before_action :check_parameters, only: [:create, :update]
 
   check_authorization
   load_and_authorize_resource
@@ -21,8 +22,7 @@ class Configs::FirefightersController < ApplicationController
   def show
     @title = t('view.firefighters.show_title')
     @firefighter = Firefighter.find(params[:id])
-
-    render partial: 'show', content_type: 'text/html'
+    @relatives = @firefighter.relatives
   end
 
   # GET /firefighters/new
@@ -30,14 +30,12 @@ class Configs::FirefightersController < ApplicationController
   def new
     @title = t('view.firefighters.new_title')
     @firefighter = Firefighter.new
-    render partial: 'new', content_type: 'text/html'
   end
 
   # GET /firefighters/1/edit
   def edit
     @title = t('view.firefighters.edit_title')
     @firefighter = Firefighter.find(params[:id])
-    render partial: 'edit', content_type: 'text/html'
   end
 
   # POST /firefighters
@@ -47,11 +45,12 @@ class Configs::FirefightersController < ApplicationController
     @firefighter = Firefighter.new(params[:firefighter])
 
     if @firefighter.save
-      render partial: 'firefighter', locals: { firefighter: @firefighter },
-        content_type: 'text/html'
+      redirect_to configs_firefighter_path(@firefighter)
     else
-      render partial: 'new', status: :unprocessable_entity
+      render action: 'new'
     end
+  rescue ActiveRecord::StaleObjectError
+    redirect_to new_config_firefighter_path(@firefighter), alert: t('view.firefighters.stale_object_error')
   end
 
   # PUT /firefighters/1
@@ -61,14 +60,12 @@ class Configs::FirefightersController < ApplicationController
     @firefighter = Firefighter.find(params[:id])
 
     if @firefighter.update_attributes(params[:firefighter])
-      render partial: 'firefighter', locals: { firefighter: @firefighter },
-        content_type: 'text/html'
+      redirect_to configs_firefighter_path(@firefighter)
     else
-      render partial: 'edit', status: :unprocessable_entity
+      render action: 'edit'
     end
   rescue ActiveRecord::StaleObjectError
-    redirect_to edit_configs_firefighter_url(@firefighter),
-      alert: t('view.firefighters.stale_object_error')
+    redirect_to new_config_firefighter_path(@firefighter), alert: t('view.firefighters.stale_object_error')
   end
 
   # DELETE /firefighters/1
@@ -79,4 +76,12 @@ class Configs::FirefightersController < ApplicationController
 
     render nothing: true, content_type: 'text/html'
   end
+
+  private
+    def check_parameters
+      parameters_to_check = %w(sex blood_type blood_factor)
+      parameters_to_check.each do |p|
+        params['firefighter'][p] = params['firefighter'][p].first if params['firefighter'][p]
+      end
+    end
 end

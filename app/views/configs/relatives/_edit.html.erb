@@ -1,10 +1,13 @@
 <div class="modal">
-  <%= simple_form_for([:configs, @firefighter], remote: true, html: { data: {
-      target: 'firefighters_table_body', error: 'modal', modal: true } }) do |f| %>
-    <div class="modal-header">
+  <div class="modal-header">
+    <h3>
+      <%= t('view.relatives.edit_title') %>
       <a class="close" data-dismiss="modal">&times;</a>
-      <h3><%= t('view.firefighters.new_title') %></h3>
-    </div>
+    </h3>
+  </div>
+  <%= simple_form_for([:configs, @firefighter, @relative], remote: true, html: {
+        data: { target: "relative_#{dom_id(@relative)}", error: 'modal',
+        modal: true, replace: true } }, method: :put ) do |f| %>
     <div class="modal-body">
       <%= render partial: 'form', locals: { f: f } %>
     </div>
